@@ -1,0 +1,21 @@
+{
+  "name": "sweet-spec-macro",
+  "version": "1.0.0",
+  "description": "A Sweet.js macro for defining specs",
+  "main": "src/spec.js",
+  "scripts": {
+    "test": "ava"
+  },
+  "author": "Tim Disney",
+  "license": "BSD-2-Clause",
+  "devDependencies": {
+    "ava": "^0.16.0",
+    "eslint": "^3.3.1",
+    "sweet.js": "^2.2.0"
+  },
+  "ava": {
+    "files": [
+      "test/*.js"
+    ]
+  }
+}

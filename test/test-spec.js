@@ -8,83 +8,50 @@ function compileAndEval(code) {
   return output;
 }
 
-test('can check for attribute existence on a single spec', t => {
+test('can construct terms', t => {
   let output = compileAndEval(`
     #lang 'sweet.js';
     import { spec } from '../src/spec.js';
 
     spec A {
-      a : any
-    }
-    output = {
-      a: A.hasAttribute('a'),
-      b: A.hasAttribute('b')
-    };
-  `);
-
-  t.true(output.a);
-  t.false(output.b);
-});
-
-test('can check for attribute existence on a child spec', t => {
-  let output = compileAndEval(`
-    #lang 'sweet.js';
-    import { spec } from '../src/spec.js';
-
-    spec A {
-      a : any;
+      a: any;
     }
     spec B : A {
-      b : any;
+      b: any;
     }
     output = {
-      a: B.hasAttribute('a'),
-      b: B.hasAttribute('b')
+      a: new A({ a: 'a' }),
+      b: new A.B({ a: 'a', b: 'b'})
     };
   `);
 
-  t.true(output.a);
-  t.true(output.b);
+  t.is(output.a.a, 'a');
+  t.is(output.a.b, void 0);
+  t.is(output.b.a, 'a');
+  t.is(output.b.b, 'b');
 });
 
-test('can get attributes', t => {
-  let output = compileAndEval(`
+test('cannot construct terms missing attributes', t => {
+  t.throws(() => compileAndEval(`
     #lang 'sweet.js';
     import { spec } from '../src/spec.js';
 
     spec A {
-      a : any;
+      a: any;
     }
-    spec B : A {
-      b : any;
-    }
-    output = {
-      a: A.getAttributes(),
-      b: B.getAttributes()
-    };
-  `);
+    new A({ b: 'b' });
+  `));
 
-  t.deepEqual(output.a, [{ attrName: 'a', attrType: { name: 'any' }}]);
-  t.deepEqual(output.b, [{ attrName: 'a', attrType: { name: 'any' }},
-                         { attrName: 'b', attrType: { name: 'any' }}]);
-});
-
-test('can get descendant', t => {
-  let output = compileAndEval(`
+  t.throws(() => compileAndEval(`
     #lang 'sweet.js';
     import { spec } from '../src/spec.js';
 
     spec A {
-      a : any;
+      a: any;
     }
     spec B : A {
-      b : any;
+      b: any;
     }
-    output = {
-      hasB: A.hasDescendant('B'),
-      hasBAttr: B.getDescendant('B').hasAttribute('b')
-    };
-  `);
-  t.is(output.hasB, true);
-  t.is(output.hasBAttr, true);
+    new B({ a: 'a', c: 'c' });
+  `));
 });

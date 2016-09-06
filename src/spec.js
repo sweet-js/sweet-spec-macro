@@ -122,8 +122,8 @@ export syntax spec = ctx => {
     let attributes = findFields(body.value);
     return #`
       const ${name.value} = class extends ${base.value} {
-        constructor(attrs) {
-          super(attrs, ${nameStr});
+        constructor(attrs, type) {
+          super(attrs, type || ${nameStr});
           ${getHasAttrTemplate(#`attrs`, attributes)}
         }
         _reduceState(reducer, state = {}) {

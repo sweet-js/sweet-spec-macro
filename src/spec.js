@@ -11,13 +11,22 @@ export syntax spec = ctx => {
 
     for (let stx of innerCtx) {
       if (stx.isIdentifier() || stx.isKeyword()) {
+        let attrName = stx.val();
         innerCtx.next(); // :
         let type = innerCtx.next().value;
-        if (type == null) { throw new Error(`what: ${stx.val()}`) }
+        if (type == null) { throw new Error(`Bad syntax: ${stx.val()}`) }
+        let attrTypeName = type.val();
+        let typeArgStx = innerCtx.next().value;
+        let arg = null;
+        if (typeArgStx && typeArgStx.isBrackets()) {
+          arg = attrTypeName;
+          attrTypeName = 'List';
+        }
         attributes.push({
-          attrName: stx.val(),
+          attrName: attrName,
           attrType: {
-            name: type.val()
+            name: attrTypeName,
+            arg: arg
           }
         });
       }
@@ -40,19 +49,70 @@ export syntax spec = ctx => {
     return temp;
   }
 
+  function attrAction(reducerStx, attrStx, attr) {
+    let attrNameStx = here.fromIdentifier(attr.attrName);
+    let attrTypeStringStx = here.fromString(attr.attrType.name);
+    let action;
+    switch (attr.attrType.name) {
+      case 'base':
+        action = #`${attrStx}`;
+        break;
+      case 'List':
+        let mappedAttr = {
+          attrName: attr.attrName,
+          attrType: {
+            name: attr.attrType.arg,
+          }
+        };
+        action = #`${attrStx}.map(a => ${attrAction(reducerStx, #`a`, mappedAttr)})`
+        break;
+      default:
+        action = #`
+          (${attrStx}.type === ${attrTypeStringStx}) ?
+          (${attrStx}.reduce(${reducerStx})) :
+          function () { throw new Error('Unknown type: ' + ${attrStx}.type) }()`;
+    }
+    return action;
+  }
+
+  function assignState(stateStx, reducerStx, attributes) {
+    let subReduce = attributes.map(function (attr) {
+      let attrNameStx = here.fromIdentifier(attr.attrName);
+      let attrStx = #`this.${attrNameStx}`;
+      return #`${stateStx}.${attrNameStx} = ${attrAction(reducerStx, attrStx, attr)};`
+    });
+    let result = #``;
+    for (let red of subReduce) {
+      result = result.concat(red);
+    }
+    return result;
+  }
+
   let reduceNameStx = here.fromIdentifier(`reduce${name.value.val()}`);
+  let nameStr = here.fromString(name.value.val());
   if ((!bodyOrExtends.done) && bodyOrExtends.value.isBraces()) {
     let attributes = findFields(bodyOrExtends.value);
     return #`
       const ${name.value} = class {
-        constructor(attrs) {
+        constructor(attrs, type) {
           ${getHasAttrTemplate(#`attrs`, attributes)}
           Object.assign(this, attrs);
+          this.type = type || ${nameStr};
+          this.loc = null;
+          Object.freeze(this);
+        }
+        _reduceState(reducer, state = {}) {
+          ${assignState(#`state`, #`reducer`, attributes)}
+          return state;
+        }
+        reduce(reducer) {
+          let state = this._reduceState(reducer);
+          return reducer.${reduceNameStx}(this, state);
         }
       }
       ${name.value}.CloneReducer = class {
         ${reduceNameStx}(term, state) {
-          return term;
+          return new ${name.value}(state);
         }
       }
     `;
@@ -63,12 +123,21 @@ export syntax spec = ctx => {
     return #`
       const ${name.value} = class extends ${base.value} {
         constructor(attrs) {
-          super(attrs);
+          super(attrs, ${nameStr});
           ${getHasAttrTemplate(#`attrs`, attributes)}
         }
+        _reduceState(reducer, state = {}) {
+          ${assignState(#`state`, #`reducer`, attributes)};
+          return super._reduceState(reducer, state);
+        }
+        reduce(reducer) {
+          let state = this._reduceState(reducer);
+          return reducer.${reduceNameStx}(this, state);
+        }
       }
-      ${base.value}.${name.value} = ${name.value};
-      ${base.value}.CloneReducer.${reduceNameStx} = function (term, state) { return term; };
+      ${base.value}.CloneReducer.prototype.${reduceNameStx} = function (term, state) {
+        return new ${name.value}(state);
+      };
     `;
   }
 };

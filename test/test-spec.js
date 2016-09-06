@@ -14,14 +14,14 @@ test('can construct terms', t => {
     import { spec } from '../src/spec.js';
 
     spec A {
-      a: any;
+      a: base;
     }
     spec B : A {
-      b: any;
+      b: base;
     }
     output = {
       a: new A({ a: 'a' }),
-      b: new A.B({ a: 'a', b: 'b'})
+      b: new B({ a: 'a', b: 'b'})
     };
   `);
 
@@ -37,21 +37,39 @@ test('cannot construct terms missing attributes', t => {
     import { spec } from '../src/spec.js';
 
     spec A {
-      a: any;
+      a: base;
     }
     new A({ b: 'b' });
-  `));
+  `), /missing attribute/i);
 
   t.throws(() => compileAndEval(`
     #lang 'sweet.js';
     import { spec } from '../src/spec.js';
 
     spec A {
-      a: any;
+      a: base;
     }
     spec B : A {
-      b: any;
+      b: base;
     }
     new B({ a: 'a', c: 'c' });
-  `));
+  `), /missing attribute/i);
+});
+
+test('can clone reduce', t => {
+  let output = compileAndEval(`
+    #lang 'sweet.js';
+    import { spec } from '../src/spec.js';
+
+    spec A {
+      a: base;
+    }
+    let a = new A({ a: 'a'});
+    output = a.reduce({
+      reduceA (node, state) {
+        return new A({ a: state.a + 'a' });
+      }
+    });
+  `);
+  t.is(output.a, 'aa');
 });

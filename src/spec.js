@@ -1,6 +1,7 @@
 #lang 'sweet.js';
 
-export syntax spec = ctx => {
+export syntax declare = ctx => {
+  ctx.next();
   let name = ctx.next();
   let bodyOrExtends = ctx.next();
   let here = #`here`.get(0);
@@ -51,10 +52,10 @@ export syntax spec = ctx => {
 
   function attrAction(reducerStx, attrStx, attr) {
     let attrNameStx = here.fromIdentifier(attr.attrName);
-    let attrTypeStringStx = here.fromString(attr.attrType.name);
+    let attrTypeStx = name.value.fromIdentifier(attr.attrType.name);
     let action;
     switch (attr.attrType.name) {
-      case 'base':
+      case 'any':
         action = #`${attrStx}`;
         break;
       case 'List':
@@ -68,7 +69,7 @@ export syntax spec = ctx => {
         break;
       default:
         action = #`
-          (${attrStx}.type === ${attrTypeStringStx}) ?
+          (${attrStx} instanceof ${attrTypeStx}) ?
           (${attrStx}.reduce(${reducerStx})) :
           function () { throw new Error('Unknown type: ' + ${attrStx}.type) }()`;
     }
@@ -114,7 +115,8 @@ export syntax spec = ctx => {
         ${reduceNameStx}(term, state) {
           return new ${name.value}(state);
         }
-      }
+      };
+      export default ${name.value};
     `;
   } else {
     let base = ctx.next();
@@ -138,6 +140,7 @@ export syntax spec = ctx => {
       ${base.value}.CloneReducer.prototype.${reduceNameStx} = function (term, state) {
         return new ${name.value}(state);
       };
+      export { ${name.value} };
     `;
   }
 };

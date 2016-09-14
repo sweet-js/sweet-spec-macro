@@ -71,7 +71,7 @@ export syntax declare = ctx => {
         action = #`
           (${attrStx} instanceof ${attrTypeStx}) ?
           (${attrStx}.reduce(${reducerStx})) :
-          function () { throw new Error('Unknown type: ' + ${attrStx}.type) }()`;
+          function () { throw new Error('Unknown object: ' + JSON.stringify(${attrStx})) }.call(this)`;
     }
     return action;
   }

@@ -202,3 +202,29 @@ test('a field can be a list of unions', t => {
   t.is(output.e[0].r, 'r');
   t.is(output.e[1].r, 'r');
 });
+
+test('supports maybe types', t => {
+  let output = compileAndEval(`
+    #lang 'sweet.js';
+    import { declare } from '../src/spec.js';
+
+    declare class Base {}
+
+    declare class A extends Base {
+      a: any;
+    }
+    declare class B extends Base {
+      b?: A
+    }
+    let b = new B({b: null});
+    output = b.reduce({
+      reduceA(node, state) {
+        return new A({ a: state.a });
+      }
+      reduceB(node, state) {
+        return new B({ b: state.b });
+      }
+    })
+  `)
+  t.is(output.b, null);
+});

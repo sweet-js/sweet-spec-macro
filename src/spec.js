@@ -60,13 +60,20 @@ export syntax declare = ctx => {
     for (let stx of innerCtx) {
       if (stx.isIdentifier() || stx.isKeyword()) {
         let attrName = stx.val();
-        let colon = innerCtx.next(); // :
-        if (!colon.value.isPunctuator(':')) {
-          throw stx.val();
+        let colonOrMaybe = innerCtx.next();
+        let isMaybe = false;
+        if (colonOrMaybe.value.isPunctuator('?')) {
+          colonOrMaybe = innerCtx.next();
+          isMaybe = true;
         }
+        if (!colonOrMaybe.value.isPunctuator(':')) {
+          throw new Error('Unexpected syntax: ' + colonOrMaybe.value.val());
+        }
+
+        let attrType = isMaybe ? { typeName: 'Maybe', arg: getAttrType(innerCtx) } : getAttrType(innerCtx);
         attributes.push({
           attrName,
-          attrType: getAttrType(innerCtx)
+          attrType: attrType
         });
       }
     }
@@ -127,6 +134,13 @@ export syntax declare = ctx => {
             (${attrStx} instanceof ${name.value.fromIdentifier(attrType.typeName)}) ?
             (${attrStx}.reduce(${reducerStx})) :`);
         }, #``).concat(#`function () { throw new Error('Unknown object: ' + JSON.stringify(${attrStx}))}.call(this)`);
+        break;
+      case 'Maybe':
+        let maybeAttr = {
+          attrName: attr.attrName,
+          attrType: attr.attrType.arg
+        };
+        action = #`${attrStx} == null ? null : ${attrAction(reducerStx, attrStx, maybeAttr)}`;
         break;
       default:
         action = #`

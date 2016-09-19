@@ -1,11 +1,13 @@
-import { spec } from './src/spec.js';
+#lang 'sweet.js';
+import { declare } from './src/spec.js';
 
-spec A {
-  a: base;
+declare class A {
+  a: any;
 }
-
-spec B : A {
-  b: A;
-  c: A[];
-  d: base[];
+declare class B extends A {
+  b: any;
 }
+output = {
+  a: new A({ a: 'a' }),
+  b: new B({ a: 'a', b: 'b'})
+};

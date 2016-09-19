@@ -6,6 +6,53 @@ export syntax declare = ctx => {
   let bodyOrExtends = ctx.next();
   let here = #`here`.get(0);
 
+  function getBaseType(ctx) {
+    let next = ctx.next().value;
+    let arg = null;
+    let typeName;
+    if (next.isParens()) {
+      arg = getAttrType(next.inner());
+    } else {
+      typeName = next.val();
+      arg = {
+        typeName: next.val()
+      };
+    }
+
+    let marker = ctx.mark();
+    let typeArgStx = ctx.next();
+    if (!typeArgStx.done && typeArgStx.value.isBrackets()) {
+      return {
+        typeName: 'List', arg
+      };
+    } else {
+      ctx.reset(marker);
+    }
+    return {
+      typeName: typeName,
+      arg: arg
+    };
+  }
+
+  function getAttrType(ctx) {
+    let attrType = getBaseType(ctx);
+    let next = ctx.next();
+    if (!next.done && next.value.isPunctuator('|')) {
+      attrType = {
+        typeName: 'Union',
+        arg: [attrType]
+      }
+      do {
+        let nextType = getBaseType(ctx);
+        attrType.arg.push(nextType);
+        next = ctx.next();
+      } while (!next.done && next.value.isPunctuator('|'));
+    } else if (!next.done && !next.value.isPunctuator(';')) {
+      throw new Error(`Unexpected token ${next.value.val()}`);
+    }
+    return attrType;
+  }
+
   function findFields (delim) {
     let attributes = [];
     let innerCtx = delim.inner();
@@ -13,22 +60,13 @@ export syntax declare = ctx => {
     for (let stx of innerCtx) {
       if (stx.isIdentifier() || stx.isKeyword()) {
         let attrName = stx.val();
-        innerCtx.next(); // :
-        let type = innerCtx.next().value;
-        if (type == null) { throw new Error(`Bad syntax: ${stx.val()}`) }
-        let attrTypeName = type.val();
-        let typeArgStx = innerCtx.next().value;
-        let arg = null;
-        if (typeArgStx && typeArgStx.isBrackets()) {
-          arg = attrTypeName;
-          attrTypeName = 'List';
+        let colon = innerCtx.next(); // :
+        if (!colon.value.isPunctuator(':')) {
+          throw stx.val();
         }
         attributes.push({
-          attrName: attrName,
-          attrType: {
-            name: attrTypeName,
-            arg: arg
-          }
+          attrName,
+          attrType: getAttrType(innerCtx)
         });
       }
     }
@@ -50,22 +88,45 @@ export syntax declare = ctx => {
     return temp;
   }
 
+  /*
+  type BaseType = {
+    typeName: 'any';
+  } | {
+    typeName: 'List';
+    arg: AttrType;
+  } | {
+    typeName: string;
+  }
+  type CompoundType = {
+    typeName: 'Union';
+    arg: BaseType[]
+  }
+
+  type AttrType = BaseType | CompoundType
+
+  */
+
   function attrAction(reducerStx, attrStx, attr) {
     let attrNameStx = here.fromIdentifier(attr.attrName);
-    let attrTypeStx = name.value.fromIdentifier(attr.attrType.name);
+    let attrTypeStx = name.value.fromIdentifier(attr.attrType.typeName);
     let action;
-    switch (attr.attrType.name) {
+    switch (attr.attrType.typeName) {
       case 'any':
         action = #`${attrStx}`;
         break;
       case 'List':
         let mappedAttr = {
           attrName: attr.attrName,
-          attrType: {
-            name: attr.attrType.arg,
-          }
+          attrType: attr.attrType.arg,
         };
         action = #`${attrStx}.map(a => ${attrAction(reducerStx, #`a`, mappedAttr)})`
+        break;
+      case 'Union':
+        action = attr.attrType.arg.reduce((acc, attrType) => {
+          return acc.concat(#`
+            (${attrStx} instanceof ${name.value.fromIdentifier(attrType.typeName)}) ?
+            (${attrStx}.reduce(${reducerStx})) :`);
+        }, #``).concat(#`function () { throw new Error('Unknown object: ' + JSON.stringify(${attrStx}))}.call(this)`);
         break;
       default:
         action = #`

@@ -225,6 +225,6 @@ test('supports maybe types', t => {
         return new B({ b: state.b });
       }
     })
-  `)
+  `);
   t.is(output.b, null);
 });

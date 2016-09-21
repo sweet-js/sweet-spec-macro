@@ -164,12 +164,19 @@ export syntax declare = ctx => {
     return result;
   }
 
+  function getCloneAttrs(attributes) {
+    return attributes.reduce((acc, attr) => {
+      let attrStx = here.fromIdentifier(attr.attrName);
+      return acc.concat(#`${attrStx} : this.${attrStx},`);
+    }, #``);
+  }
+
   let reduceNameStx = here.fromIdentifier(`reduce${name.value.val()}`);
   let nameStr = here.fromString(name.value.val());
   if ((!bodyOrExtends.done) && bodyOrExtends.value.isBraces()) {
     let attributes = findFields(bodyOrExtends.value);
     return #`
-      const ${name.value} = class {
+      class ${name.value} {
         constructor(attrs, type) {
           ${getHasAttrTemplate(#`attrs`, attributes)}
           Object.assign(this, attrs);
@@ -181,9 +188,17 @@ export syntax declare = ctx => {
           ${assignState(#`state`, #`reducer`, attributes)}
           return state;
         }
+        _cloneAttrs() {
+          return {
+            ${getCloneAttrs(attributes)}
+          };
+        }
         reduce(reducer) {
           let state = this._reduceState(reducer);
           return reducer.${reduceNameStx}(this, state);
+        }
+        extend(attrs) {
+          return new ${name.value}(Object.assign(this._cloneAttrs(), attrs));
         }
       }
       ${name.value}.CloneReducer = class {
@@ -198,7 +213,7 @@ export syntax declare = ctx => {
     let body = ctx.next();
     let attributes = findFields(body.value);
     return #`
-      const ${name.value} = class extends ${base.value} {
+      class ${name.value} extends ${base.value} {
         constructor(attrs, type) {
           super(attrs, type || ${nameStr});
           ${getHasAttrTemplate(#`attrs`, attributes)}
@@ -207,9 +222,17 @@ export syntax declare = ctx => {
           ${assignState(#`state`, #`reducer`, attributes)};
           return super._reduceState(reducer, state);
         }
+        _cloneAttrs() {
+          return Object.assign({
+            ${getCloneAttrs(attributes)}
+          }, super._cloneAttrs());
+        }
         reduce(reducer) {
           let state = this._reduceState(reducer);
           return reducer.${reduceNameStx}(this, state);
+        }
+        extend(attrs) {
+          return new ${name.value}(Object.assign(this._cloneAttrs(), attrs));
         }
       }
       ${base.value}.CloneReducer.prototype.${reduceNameStx} = function (term, state) {

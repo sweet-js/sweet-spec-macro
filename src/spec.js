@@ -130,6 +130,9 @@ export syntax declare = ctx => {
         break;
       case 'Union':
         action = attr.attrType.arg.reduce((acc, attrType) => {
+          if (attrType.typeName === 'null') {
+            return acc.concat(#` (${attrStx} == null) ? null :`);
+          }
           return acc.concat(#`
             (${attrStx} instanceof ${name.value.fromIdentifier(attrType.typeName)}) ?
             (${attrStx}.reduce(${reducerStx})) :`);

@@ -203,7 +203,55 @@ export syntax declare = ctx => {
         extend(attrs) {
           return new ${name.value}(Object.assign(this._cloneAttrs(), attrs));
         }
+        // TODO: hack, do this right
+        from(type, value) {
+          if (this.value && typeof this.value.from === 'function') {
+            return this.value.from(type, value);
+          }
+          throw new Error('Not implemented yet');
+        }
+        fromNull() {
+          return this.from("null", null);
+        }
+
+        fromNumber(value) {
+          return this.from('number', value);
+        }
+
+        fromString(value) {
+          return this.from("string", value);
+        }
+
+        fromPunctuator(value) {
+          return this.from("punctuator", value);
+        }
+
+        fromKeyword(value) {
+          return this.from("keyword", value);
+        }
+
+        fromIdentifier(value) {
+          return this.from("identifier", value);
+        }
+
+        fromRegularExpression(value) {
+          return this.from("regularExpression", value);
+        }
+
+        fromBraces(inner) {
+          return this.from("braces", inner);
+        }
+
+        fromBrackets(inner) {
+          return this.from("brackets", inner);
+        }
+
+        fromParens(inner) {
+          return this.from("parens", inner);
+        }
+
       }
+
       ${name.value}.CloneReducer = class {
         ${reduceNameStx}(term, state) {
           return new ${name.value}(state);

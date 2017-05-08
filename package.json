@@ -1,6 +1,6 @@
 {
   "name": "sweet-spec-macro",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "A Sweet.js macro for defining specs",
   "main": "src/spec.js",
   "scripts": {

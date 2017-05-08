@@ -1,7 +1,11 @@
 #lang 'sweet.js';
 
 export syntax declare = ctx => {
-  ctx.next();
+  ctx.next(); // export
+  let defaultOrClass = ctx.next().value; // class or default
+  if (defaultOrClass.isKeyword('default')) {
+    ctx.next(); // consume class
+  }
   let name = ctx.next();
   let bodyOrExtends = ctx.next();
   let here = #`here`.get(0);

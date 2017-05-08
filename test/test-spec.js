@@ -15,10 +15,10 @@ test('can construct terms', t => {
     #lang 'sweet.js';
     import { declare } from '../src/spec.js';
 
-    declare class A {
+    declare export default class A {
       a: any;
     }
-    declare class B extends A {
+    declare export class B extends A {
       b: any;
     }
     output = {
@@ -38,7 +38,7 @@ test('cannot construct terms missing attributes', t => {
     #lang 'sweet.js';
     import { declare } from '../src/spec.js';
 
-    declare class A {
+    declare export default class A {
       a: any;
     }
     new A({ b: 'b' });
@@ -48,10 +48,10 @@ test('cannot construct terms missing attributes', t => {
     #lang 'sweet.js';
     import { declare } from '../src/spec.js';
 
-    declare class A {
+    declare export default class A {
       a: base;
     }
-    declare class B extends A {
+    declare export class B extends A {
       b: any;
     }
     new B({ a: 'a', c: 'c' });
@@ -63,7 +63,7 @@ test('can clone reduce', t => {
     #lang 'sweet.js';
     import { declare } from '../src/spec.js';
 
-    declare class A {
+    declare export default class A {
       a: any;
     }
     let a = new A({ a: 'a'});
@@ -81,10 +81,10 @@ test('a field can be another type', t => {
     #lang 'sweet.js';
     import { declare } from '../src/spec.js';
 
-    declare class A {
+    declare export default class A {
       a: any;
     }
-    declare class B extends A {
+    declare export class B extends A {
       b: A;
     }
     let a = new A({ a: 'a'});
@@ -107,10 +107,10 @@ test('a field can be an array', t => {
     #lang 'sweet.js';
     import { declare } from '../src/spec.js';
 
-    declare class A {
+    declare export default class A {
       a: any[];
     }
-    declare class B extends A {
+    declare export class B extends A {
       b: A[];
     }
     let a = new A({ a: [1, 2, 3] });
@@ -136,15 +136,15 @@ test('a field can be a union', t => {
     #lang 'sweet.js';
     import { declare } from '../src/spec.js';
 
-    declare class Term {}
-    declare class Left extends Term {
+    declare export default class Term {}
+    declare export class Left extends Term {
       l: any;
     }
-    declare class Right extends Term {
+    declare export class Right extends Term {
       r: any;
     }
 
-    declare class Either extends Term {
+    declare export class Either extends Term {
       e: Left | Right;
     }
     let l = new Left({ l : 'left' });
@@ -171,15 +171,15 @@ test('a field can be a list of unions', t => {
     #lang 'sweet.js';
     import { declare } from '../src/spec.js';
 
-    declare class Term {}
-    declare class Left extends Term {
+    declare export default class Term {}
+    declare export class Left extends Term {
       l: any;
     }
-    declare class Right extends Term {
+    declare export class Right extends Term {
       r: any;
     }
 
-    declare class Either extends Term {
+    declare export class Either extends Term {
       e: (Left | Right)[];
     }
     let l = new Left({ l : 'left' });
@@ -208,12 +208,12 @@ test('supports maybe types', t => {
     #lang 'sweet.js';
     import { declare } from '../src/spec.js';
 
-    declare class Base {}
+    declare export class Base {}
 
-    declare class A extends Base {
+    declare export class A extends Base {
       a: any;
     }
-    declare class B extends Base {
+    declare export class B extends Base {
       b?: A
     }
     let b = new B({b: null});
